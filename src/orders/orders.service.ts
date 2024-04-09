@@ -31,13 +31,20 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
     await this.$connect();
     this.logger.log('Connected to the database');
   }
-  async create(createOrderDto: CreateOrderDto) {
-    const ids = createOrderDto.items.map((item) => item.productId);
+  private async getProducts(ids): Promise<Iproduct[]> {
     try {
       const products = await firstValueFrom(
         this.productsClient.send({ cmd: 'validate_products' }, { ids }),
       );
-
+      return products;
+    } catch (error) {
+      throw new RpcException(error);
+    }
+  }
+  async create(createOrderDto: CreateOrderDto) {
+    const ids = createOrderDto.items.map((item) => item.productId);
+    try {
+      const products = await this.getProducts(ids);
       const totalAmount = createOrderDto.items.reduce((_acc, orderItem) => {
         const item = products.find((r) => r.id === orderItem.productId);
         return _acc + item.price * orderItem.quantity;
@@ -122,6 +129,15 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
       where: {
         id,
       },
+      include: {
+        OrderItem: {
+          select: {
+            price: true,
+            quantity: true,
+            productId: true,
+          },
+        },
+      },
     });
     if (!order) {
       throw new RpcException({
@@ -129,7 +145,19 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
         status: HttpStatus.NOT_FOUND,
       });
     }
-    return order;
+
+    const ids = order.OrderItem.map((item) => item.productId);
+    const products = await this.getProducts(ids);
+
+    return {
+      ...order,
+      OrderItem: order.OrderItem.map((item) => {
+        return {
+          ...item,
+          name: products.find((r) => r.id === item.productId).name,
+        };
+      }),
+    };
   }
 
   async changeStatus(changeOrderStatusDto: ChangeOrderStatusDto) {
