@@ -14,13 +14,19 @@ npm install
 
 3. Create file `.env` with `env.template`
 
-4. Run migrations from Prisma
+4. Run NATS Server
+
+```
+docker run -d --name nats-main -p 4222:4222 -p 6222:6222 -p 8222:8222 nats
+```
+
+5. Run migrations from Prisma
 
 ```
 npx prisma migrate dev
 ```
 
-5. Run App
+6. Run App
 
 ```
 npm run start:dev
