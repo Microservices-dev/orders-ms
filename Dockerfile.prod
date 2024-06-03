@@ -1,5 +1,5 @@
 #Dependencias
-FROM node:21-alpine3.19 as deps
+FROM --platform=linux/amd64 node:21-alpine3.19 as deps
 
 WORKDIR /usr/src/app
 
@@ -9,7 +9,7 @@ RUN npm install
 
 
 #Builder - contruir la aplicacion
-FROM node:21-alpine3.19 as build
+FROM --platform=linux/amd64 node:21-alpine3.19 as build
 
 ARG ORDERS_DB_URL
 ENV DATABASE_URL=$ORDERS_DB_URL
@@ -31,7 +31,7 @@ RUN npm run build
 RUN npm ci  -f --only=production && npm cache clean --force
 
 #crear la imagen final
-FROM node:21-alpine3.19 as prod
+FROM --platform=linux/amd64 node:21-alpine3.19 as prod
 
 WORKDIR /usr/src/app
 
